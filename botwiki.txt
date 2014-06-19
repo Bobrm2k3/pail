@@ -1,0 +1,186 @@
+This is a VERY incomplete list of pail commands and only includes the core ones that need reference material
+Most will work via channel messages, some will work via query
+
+
+Set autoresponse:
+  !<trigger> !<response>
+  -When the text in trigger is said verbatim(not case sensitive, end punctuation is ignored), bot will print the response
+  -The trigger will take precendence over all other commands
+  -limit of 5 responses saved to a unique trigger
+  -can be set via query
+  -Response can include the following tokens that will be dynamically replaced when it is triggered
+    $nick - the nick of the person who triggers it
+    $someone - a random nick in the channel
+    $bot - the bot's name when it is triggered
+    $chan - the channel name where it is triggered
+    $quote - the text used to trigger it
+    $me - if it is the first thing in response, it makes the response a /me
+  -example:
+    <~Syd> !hi !$me high fives $nick
+    <@pail> trigger/response registered
+    ...
+    <@Oooch> hi
+    * @pail high fives Oooch
+    
+  
+  
+Store text permanantly:
+  !store <name> <text>
+  -the text is stored under the name used, certain names are reserved and a message will tell you so
+  -example:
+    <~Syd> !store cah http://pyz.socialgamer.net/game.jsp
+    <@pail> Saved
+    <~Syd> !recall cah
+    <@pail> http://pyz.socialgamer.net/game.jsp
+  
+  
+Recall permanant text:
+  !recall <name>
+  -bot will print the text saved to that name with the !store or .txt command
+  -the name is not case sensitive
+  -can use wildcards(*) in the name to do a search of saved names
+
+  
+Save a user.txt:
+  .txt <lines>
+  -Short hand to save the last thing said under <their nick>.txt
+  -'lines' argument is optional, saves that many previous lines from that nick
+  -example:
+    <@Joracy> I'm probably going to die alone
+    <~Syd> .txt
+    <@pail> Saved
+    <~Syd> !recall Joracy.txt
+    <@pail> <Joracy> I'm probably going to die alone
+    
+    
+Recall a user.txt:
+  <nick>.txt
+  -returns a random saved .txt from that nick
+  -Inludes the ID number of that .txt for downvoting
+  
+  
+Vote to delete a .txt:
+  !downvote <ID number>
+  -Adds a downvote to the .txt with the ID specified
+  -Deletes at five unique downvotes
+ 
+ 
+Set timer:
+  !timer <positive integer> (seconds|minutes|hours) <message>
+  -bot will highlight you in the same channel after the time has elapsed with the message
+  -example:
+    <~Syd> !timer 5 minutes check on cookies
+    <@pail> Maybe I'll remind you
+    ... (5 minutes later)
+    <@pail> Syd, check on cookies
+ 
+ 
+Give something to the bot:
+  (give|hand|gift)s? <botName> <item>
+  or
+  (give|hand|gift)s? <item> to <botName>
+  -the bot might accept what you give it and add to its hoard
+  -it may give something back from its hoard
+
+  
+Take something from the bot:
+  (robs|mugs|steals from) <botName>
+  -the bot will give you something if you spare it a beating
+  -is on a lockout timer
+  
+
+Get source code:
+  !source
+  or
+  (<botName> )?((send|give)( me)?|can I (have|get)|hand over|can you (send|give) me) (the |your )?(source( code)?|code)
+  -bot will send you the source code via DCC, it is in a .7z file so make sure your IRC client accepts those
+  
+  
+Send proxy message to an offline nick:
+  !message <nick> <message>
+  -bot will relay that message when that person joins the channel you sent the command from
+  -example:
+    <~Syd> !message shyan Accept my aid
+    <@pail> I might get around to delivering that message
+    ...
+    * Shyan (eZe@coldfront-2606F3CD.hsd1.fl.comcast.net) has joined #podn
+    <@pail> Message to Shyan [2013/10/13 15:23 EST] <Syd> Accept my aid
+    
+  
+Nation strength range calculator:
+  <any text> <number> (ns|nation strength)
+  -prints the range you can declare on
+
+  
+Find out if someone or something blends:
+  (does|will) <thing> blend?
+  -this function is consistent for each input
+  
+  
+Random number generators:
+  !random <num1> <num2>
+  -num1 and num2 need to be integers
+  -returns a random integer in the range num1-num2 inclusive
+  !random card
+  -returns a random playing card
+  !random revolver
+  -returns a Russian roulette result
+  !random wiki
+  -returns a random wiki article
+  -examples:
+    <~Syd> !random 1 10
+    <@pail> 6
+    <~Syd> !random card
+    <@pail> 2 of spades
+    <~Syd> !random revolver
+    <@pail> *click*
+    <~Syd> !random wiki
+    <@pail> https://en.wikipedia.org/wiki/Khorumi
+    
+
+Choose between two things:
+  <thing1> or <thing2>?
+  or
+  <any text>(:|,) <thing1> or <thing2>?
+  -bot will return one of those things
+  -this function is consistent for each input
+  -example:
+    <~Syd> What should I watch: Adventure Time or Regular Show?
+    <@pail> Adventure Time
+
+  
+Make text colorful:
+  (colou?r(ful)?|fabulous|gay) <text>
+  
+  
+Check user post count:
+  !post <nick>
+  or
+  !postcount <nick>
+  -returns the number of messages that nick has ever posted in channels the bot is active in
+  
+  
+
+  
+  
+Adminstrative commands
+  Admins only: 
+  !ban <nick>, !unban <nick>
+  -bans or unbans a nick, is not case sensitive
+  
+  !addchan <chan>, !delchan <chan>
+  -bot adds the channel to it's active list and tries to join it (or removes it and leaves that channel)
+  
+  !reset
+  -bot reidentifies with the server and tries to rejoin channels
+  -use if the bot seems to have DC'd and hasn't returned to private channels, but is still on IRC
+  
+  Everyone:
+  !banlist, !chanlist, !adminlist
+
+  
+  
+Other stuff
+  -unicode characters are replaced with '#' before being processed
+  -changing nicks causes a one minute 'timeout'
+  -triggering bot responses too often in a certain period of time causes a short timeout
