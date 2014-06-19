@@ -1,9 +1,8 @@
 Actions to set up bot.py for your own use:
-   Requires xchat, python (using version 2.6, others probably work), requests library, pysqlite library, sqlite3
-   Edit and run gendb.py to initialize the database (at the very least, set yourself as supreme admin)
-   Edit bot.conf as necessary
+   Requires xchat, python 2.6, requests library, pysqlite library, sqlite3
+   Edit and run gen/gendb.py to initialize the database (at the very least, set yourself as supreme admin)
+   Edit and run gen/configFileSetup.py to generate the bot.conf config file
    Edit passwordFile to indicate a text file with the bot's IRC identify password
-   Make any changes to the code that you want;  The copyright is GPL for a reason
 
 
 Issues you may have:
