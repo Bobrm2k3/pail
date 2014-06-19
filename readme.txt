@@ -3,6 +3,8 @@ Actions to set up bot.py for your own use:
    Edit and run gen/gendb.py to initialize the database (at the very least, set yourself as supreme admin)
    Edit and run gen/configFileSetup.py to generate the bot.conf config file
    Edit passwordFile to indicate a text file with the bot's IRC identify password
+   There are a number of overly specific functions, such as opening the counterstrike server, that should be removed
+      if the the bot is hosted on a different machine
 
 
 Issues you may have:
