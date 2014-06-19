@@ -1,8 +1,8 @@
 from botDbAccess import *
+from quote import *
 import text
 import message
-from quote import *
-import xchat, random, requests, string, re, os
+import xchat, random, requests, string, re
 import time, datetime
 import subprocess
 
@@ -150,12 +150,9 @@ def setTimer(msg, botName, channel, db):
       
       
 def sourceRequest(msg, botName, channel, db):
-  dirName = "C:\\bot"  #this is lazy, fix it maybe
-  source = "bot.7z"    #so is this
   if msg.formMatchRe("("+botName+" )?((send|give)( me)?|can I (have|get)|hand over|can you (send|give) me) (the |your )?(source( code)?|code)") \
   or msg.rawMatchRe("!source\s*$"):
-    xchat.command("dcc send %s %s" % (msg.getUserName(), os.path.join(dirName,source)))
-    xchat.command("msg %s Here you go" % channel)
+    xchat.command("msg %s https://github.com/Bobrm2k3/pail" % channel)
     return True
   return False
   
@@ -920,7 +917,7 @@ def helpFunction(msg, botName, channel, db):
   if msg.rawMatchRe("!help ?(?P<arg>\S*)"):
     arg = msg.getRegExpResult().group('arg')
     if arg == 'commands':
-      xchat.command("msg %s http://pastebin.com/L5j0HfVG" % channel)
+      xchat.command("msg %s https://github.com/Bobrm2k3/pail/blob/master/botwiki.txt" % channel)
     elif arg == 'about':
       xchat.command("msg %s This bot is written by Syd - Credit to Bucket written by Randall Monroe for inspiration" % channel)
       xchat.command("msg %s You are free to modify and distribute the code under GPLv3" % channel)
