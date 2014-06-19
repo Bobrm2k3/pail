@@ -1,0 +1,4 @@
+pail
+====
+
+IRC chat bot
