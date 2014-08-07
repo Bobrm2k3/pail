@@ -48,6 +48,7 @@ class msgObject(object):
     
     # create and sanitize a list of nicks in the channel for reg exp
     self.nicklist = [x.nick.lower() for x in xchat.get_list('users')]
+    self.nicklistUpper = [x.nick for x in xchat.get_list('users')]
     self.reNicklist = '|'.join([x.replace('|','\|').replace('[','\[').replace(']','\]') for x in self.nicklist])
   
     

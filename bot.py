@@ -255,7 +255,7 @@ xchat.hook_print('Join', ScanJoinMsg)
 def ScanNickMsg(word, word_eol, userdata):
   newName = word[1]
   nickChangeTimeout.append(newName)
-  xchat.hook_timer(120000, endNickTimeout)  # 2 minutes timeout
+  xchat.hook_timer(60000, endNickTimeout)  # 1 minutes timeout
   # channel = xchat.get_info("channel")
   # checkForProxyMessage(newName, channel)
   # xchat.command("msg ns status %s" % newName)

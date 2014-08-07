@@ -115,6 +115,7 @@ mama = [
   "so fat she needs cheats to play Wii Fit",
   "so fat that if you tried to represent her mass with a float, it would sink",
   "so fat her blood type is nutella",
+  "so FAT, she can't save files bigger than 4 GB",
   "so stupid she thinks taco bell is a mexican phone company",
   "so stupid she tried to put her M&Ms in alphabetical order",
   "so stupid that when she hears it's chilly outside she gets a bowl",

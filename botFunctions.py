@@ -141,7 +141,7 @@ def setTimer(msg, botName, channel, db):
     ticks = int(m.group('num')) * lenDict[m.group('unit')]
     
     message = m.group('other')
-    if message == None: message = 'time'
+    if message == '': message = 'time'
 
     xchat.hook_timer(ticks, generalTimer, "msg %s %s, %s" % (channel, msg.getUserName(), message))
     xchat.command("msg %s Maybe I'll remind you" % channel)
@@ -202,7 +202,7 @@ def messageByProxy(msg, botName, channel, db):
   
   
 def nsCalc(msg, botName, channel, db):
-  if msg.rawMatchRe(r"\D*(?P<num>\d[\d,]+)(\.\d+)? (nation ?strength|range|ns)"):
+  if msg.rawMatchRe(r"!(ns|range) (?P<num>\d[\d,]+)(\.\d+)?"):
     ns = int(msg.getRegExpResult().group('num').replace(',',''))
     xchat.command("msg %s A range of %s to %s" % (channel, ns*.75, round(ns*1.33, 0)))
     return True
@@ -856,7 +856,7 @@ def openCsServer(msg, botName, channel, db):
         p = subprocess.Popen(serverCommand, cwd = serverDirectory)
         
       else:
-        xchat.command("msg %s Server already running" % channel)
+        xchat.command("msg %s Server/updater already running" % channel)
 
     return True
     
@@ -958,7 +958,7 @@ def statusReturn(nick, level, db):
 # takes the id if the video, calls the youtube API and returns it's title
 # if anything goes wrong, None is returned
 def youtubeCall(id):
-  if random.randint(0,19) == 0:
+  if random.randint(0,29) == 0:
     return "Rick Astley - Never Gonna Give You Up"
   else:
     link = "http://gdata.youtube.com/feeds/api/videos/%s?alt=jsonc&v=2" % id
@@ -1066,7 +1066,7 @@ def generalTimer(userdata):
 def replaceTokens(initString, msg, botName, channel):
   initString = re.sub('\$nick', msg.getUserName(), initString)
   initString = re.sub('\$bot', botName, initString)
-  initString = re.sub('\$someone', random.choice(msg.nicklist), initString)
+  initString = re.sub('\$someone', random.choice(msg.nicklistUpper), initString)
   initString = re.sub('\$quote', msg.rawStr, initString)
   initString = re.sub('\$chan', channel, initString)
   if re.match('^\$me', initString, re.IGNORECASE):
