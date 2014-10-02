@@ -4,3 +4,8 @@ bot.conf
 bot.db
 sqlite3.exe
 txtConvert.py
+botDbAccess.pyc
+botFunctions.pyc
+message.pyc
+quote.pyc
+text.pyc

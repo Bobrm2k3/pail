@@ -19,7 +19,7 @@ __module_name__ = "bot.py"
 __module_version__ = "1.8"
 __module_description__ = "a Bucket-like IRC chat bot"
 
-dirName = "C:\\bot"  # <---if bot can't find modules, change this to the location of the project directory
+dirName = "C:\\Users\\Syd\\Documents\\GitHub\\pail"  # <---if bot can't find modules, change this to the location of the project directory
 configFile = "bot.conf"
 
 import sys, os

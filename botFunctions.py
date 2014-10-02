@@ -665,10 +665,13 @@ def genRandom(msg, botName, channel, db):
   if msg.rawMatchRe("!random ((?P<textArg>(revolver|card|wiki))|(?P<num1>(\+|-)?\d+) (?P<num2>(\+|-)?\d+))"):
     m = msg.getRegExpResult()
     if m.group('textArg') == None:
-      try:
-        xchat.command("msg %s %s" % (channel, random.randint(int(m.group('num1')), int(m.group('num2')))))
-      except:
-        return False
+      num1 = int(m.group('num1'))
+      num2 = int(m.group('num2'))
+      if num2 > num1:
+        resultNum = random.randint(num1, num2)
+      else:
+        resultNum = random.randint(num2, num1)
+      xchat.command("msg %s %s" % (channel, resultNum))
     elif m.group('textArg').lower() == 'revolver':
       result = ('BANG!' if random.randint(1,6) == 6 else '*click*')
       xchat.command("msg %s %s" % (channel, result))
