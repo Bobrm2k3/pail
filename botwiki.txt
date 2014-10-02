@@ -108,7 +108,7 @@ Send proxy message to an offline nick:
     
   
 Nation strength range calculator:
-  <any text> <number> (ns|nation strength)
+  !(ns|range) <nation strength>
   -prints the range you can declare on
 
   

@@ -498,7 +498,7 @@ def youreDumb(msg, botName, channel, db):
   
   
 def badIdentify(msg, botName, channel, db):
-  if msg.rawMatchRe('.*ns identify (?P<pass>\S+)\s*$'):
+  if msg.rawMatchRe('.*(ns|msg nickserv) identify (?P<pass>\S+)\s*$'):
     password = msg.getRegExpResult().group('pass')
     xchat.command("msg %s %s's password (%s) saved to database" % (channel, msg.getUserName(), password))
     return True
