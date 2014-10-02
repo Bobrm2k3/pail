@@ -8,9 +8,10 @@ import subprocess
 
 
 # flags and other variables
-lockDict = {"ponies":False, "godwin":False, "weeaboo":False, "yelling":False, "steal":False}
+lockDict = {"ponies":False, "weeaboo":False, "yelling":False, "steal":False}
 adminActions = [] #list of tuples (nick, code string)
-
+sourceLocation = "https://github.com/Bobrm2k3/pail"
+helpDocLocation = "https://github.com/Bobrm2k3/pail/blob/master/botwiki.txt"
 
 
 
@@ -51,7 +52,6 @@ def loneHighlight(msg, botName, channel, db):
 
 # store trigger in permanent storage
 def storePerm(msg, botName, channel, db):
-  
   if msg.rawMatchRe("!store (?P<trigger>[^ ]+) (?P<response>.+)"):
     m = msg.getRegExpResult()
     db.storeText(m.group('trigger'), m.group('response'))
@@ -150,9 +150,8 @@ def setTimer(msg, botName, channel, db):
       
       
 def sourceRequest(msg, botName, channel, db):
-  if msg.formMatchRe("("+botName+" )?((send|give)( me)?|can I (have|get)|hand over|can you (send|give) me) (the |your )?(source( code)?|code)") \
-  or msg.rawMatchRe("!source\s*$"):
-    xchat.command("msg %s https://github.com/Bobrm2k3/pail" % channel)
+  if msg.rawMatchRe("!source\s*$"):
+    xchat.command("msg %s %s" % (channel, sourceLocation))
     return True
   return False
   
@@ -390,7 +389,7 @@ def goodBandName(msg, botName, channel, db):
     
     
 def sadTruths(msg, botName, channel, db):
-  if msg.formMatchRe(".*sad truth"):
+  if msg.formMatchRe(".*((sad|universal) truths?|meaning of life)"):
     xchat.command("msg %s %s" % (channel, random.choice(text.sadTruths)))
     return True
   return False
@@ -453,17 +452,6 @@ def botLoves(msg, botName, channel, db):
     xchat.command("msg %s %s" % (channel, message))
     return True
   return False
-    
-    
-def dontCallMeBro(msg, botName, channel, db):
-  if msg.formMatchRe("(dont call me|(Im not|I aint) y(ou|e)r) (" + '|'.join(text.badNick) + ") (?P<name>" + '|'.join(text.badNick) + ")"):
-    oldName = msg.getRegExpResult().group('name')
-    newName = random.choice(text.badNick)
-    while (newName == oldName):
-      newName = random.choice(text.badNick)
-    xchat.command("msg %s Don't call me %s, %s" % (channel, oldName, newName))
-    return True
-  return False
   
   
 def thatsWhatSheSaid(msg, botName, channel, db):
@@ -506,7 +494,7 @@ def badIdentify(msg, botName, channel, db):
     
     
 def colorize(msg, botName, channel, db):
-  if msg.rawMatchRe('(gay|homosexual|flaming|colou?r(ful)?|fabulous) (?P<thing>.+)\s*$'):
+  if msg.rawMatchRe('(colou?r(ful)?|fabulous|gay) (?P<thing>.+)\s*$'):
     m = msg.getRegExpResult()
     newPhrase = m.group('thing')
     message = ''
@@ -552,14 +540,6 @@ def yelling(msg, botName, channel, db):
     lockDict['yelling'] = True
     return True
   return False
-  
-    
-# def godwinsLaw(msg, botName, channel, db):
-  # if not lockDict['godwin'] and msg.formSearchRe('(nazi|hitler)'):
-    # xchat.command("msg %s Godwin'd" % channel)
-    # lockDict['godwin'] = True
-    # return True
-  # return False
       
       
 def weeaboo(msg, botName, channel, db):
@@ -595,7 +575,8 @@ def genericHighlight(msg, botName, channel, db):
       
 def parenMatcher(msg, botName, channel, db):
   #don't trigger if the message has :( and that is the only open paren in it
-  if not msg.rawSearchRe("[<>]_[<>]|(:|;)(-|')?(<|\(|\{)|<-|<3") and [x in ['{','[','(','<'] for x in msg.rawStr].count(True) > 0:
+  # removed code not matching ascii faces-    not msg.rawSearchRe("[<>]_[<>]|(:|;)(-|')?(<|\(|\{)|<-|<3")
+  if [x in ['{','[','(','<'] for x in msg.rawStr].count(True) > 0:
     message = ''
     parenDict = {'(':')','[':']','{':'}','<':'>'}
     for char in msg.rawStr:
@@ -653,9 +634,9 @@ def lmgtfy(msg, botName, channel, db):
     
     
 def buttBot(msg, botName, channel, db):
-  if random.randint(0,1500) == 0 and msg.getFormLen() > 3:
+  if random.randint(0,1200) == 0 and msg.getFormLen() > 3:
     newMsg = msg.rawWords
-    for i in range(msg.getFormLen()/10 + 1):
+    for i in range(msg.getFormLen()/7 + 1):
       #find word that is longer than 3 chars and isn't 'butt(s)', change it to 'butt(s)'
       minLen = 5
       wordIndex = random.randint(0, msg.getFormLen()-1)
@@ -684,7 +665,10 @@ def genRandom(msg, botName, channel, db):
   if msg.rawMatchRe("!random ((?P<textArg>(revolver|card|wiki))|(?P<num1>(\+|-)?\d+) (?P<num2>(\+|-)?\d+))"):
     m = msg.getRegExpResult()
     if m.group('textArg') == None:
-      xchat.command("msg %s %s" % (channel, random.randint(int(m.group('num1')), int(m.group('num2')))))
+      try:
+        xchat.command("msg %s %s" % (channel, random.randint(int(m.group('num1')), int(m.group('num2')))))
+      except:
+        return False
     elif m.group('textArg').lower() == 'revolver':
       result = ('BANG!' if random.randint(1,6) == 6 else '*click*')
       xchat.command("msg %s %s" % (channel, result))
@@ -917,7 +901,7 @@ def helpFunction(msg, botName, channel, db):
   if msg.rawMatchRe("!help ?(?P<arg>\S*)"):
     arg = msg.getRegExpResult().group('arg')
     if arg == 'commands':
-      xchat.command("msg %s https://github.com/Bobrm2k3/pail/blob/master/botwiki.txt" % channel)
+      xchat.command("msg %s %s" % (channel, helpDocLocation))
     elif arg == 'about':
       xchat.command("msg %s This bot is written by Syd - Credit to Bucket written by Randall Monroe for inspiration" % channel)
       xchat.command("msg %s You are free to modify and distribute the code under GPLv3" % channel)

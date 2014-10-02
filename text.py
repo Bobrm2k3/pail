@@ -276,19 +276,6 @@ insults = [
   "Haters gonna hate"
 ]
 
-badNick = [
-  "bro",
-  "broseph",
-  "dude",
-  "man",
-  "guy",
-  "brah",
-  "pal",
-  "bud",
-  "buddy",
-  "friend"
-]
-
 
 hasThing = [
   "Will you share %s with me?",
@@ -323,7 +310,6 @@ posts = [
   "%s has managed to ruin everything in only %d posts",
   "%s: %d ...and only 27.5 percent of them were links to porn",
   "%s: %d posts",
-#  "%s has posted DATABASE CORRUPTI*b3kuG*&R-e0x%dFFF######",
   "%s has %d posts and is somehow still not banned",
   "%s is at %d posts and will probably never stop",
   "%s has asked for sops %d times"

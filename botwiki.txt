@@ -76,23 +76,21 @@ Set timer:
  
  
 Give something to the bot:
-  (give|hand|gift)s? <botName> <item>
+  /me (give|hand|gift)s? <botName> <item>
   or
-  (give|hand|gift)s? <item> to <botName>
+  /me (give|hand|gift)s? <item> to <botName>
   -the bot might accept what you give it and add to its hoard
   -it may give something back from its hoard
 
   
 Take something from the bot:
-  (robs|mugs|steals from) <botName>
+  /me (robs|mugs|steals from) <botName>
   -the bot will give you something if you spare it a beating
   -is on a lockout timer
   
 
 Get source code:
   !source
-  or
-  (<botName> )?((send|give)( me)?|can I (have|get)|hand over|can you (send|give) me) (the |your )?(source( code)?|code)
   -bot will send you the source code via DCC, it is in a .7z file so make sure your IRC client accepts those
   
   
@@ -150,7 +148,7 @@ Choose between two things:
 
   
 Make text colorful:
-  (colou?r(ful)?|fabulous) <text>
+  (colou?r(ful)?|fabulous|gay) <text>
   
   
 Check user post count:
@@ -182,5 +180,5 @@ Adminstrative commands
   
 Other stuff
   -unicode characters are replaced with '#' before being processed
-  -changing nicks causes a one minute 'timeout'
+  -changing nicks causes a short timeout where the bot ignores you
   -triggering bot responses too often in a certain period of time causes a short timeout
