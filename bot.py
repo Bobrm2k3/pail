@@ -16,15 +16,16 @@
 
 
 __module_name__ = "bot.py"
-__module_version__ = "1.8"
+__module_version__ = "1.9"
 __module_description__ = "a Bucket-like IRC chat bot"
 
-dirName = "C:\\Users\\Syd\\Documents\\GitHub\\pail"  # <---if bot can't find modules, change this to the location of the project directory
-configFile = "bot.conf"
 
-import sys, os
-os.chdir(dirName)
-sys.path.append(dirName)  # this is a workaround, needs a better solution
+import sys, os, inspect
+
+# create an arbitrary object, determine the path of the file it was created in (i.e. this one), remove the file name part
+# technically the previous workaround was uglier
+currentDirName = os.path.abspath(inspect.getsourcefile(lambda _: None)).replace(__module_name__, "")
+sys.path.append(currentDirName)
 
 import text
 from botDbAccess import *
@@ -37,6 +38,7 @@ import xchat, random, time, ConfigParser
 print ">> bot.py loading <<"
 
 #  CONFIG STUFF
+configFile = currentDirName+"bot.conf"
 config = ConfigParser.RawConfigParser()
 config.read(configFile)
 
@@ -45,12 +47,10 @@ serverName = config.get('Section', 'server')
 portNum = config.get('Section', 'port')
 passwordFile = config.get('Section', 'passwordFile')
 dbFile = config.get('Section', 'database')
-sourceFile  = config.get('Section', 'source')
-
 
 # initialization stuff
 random.seed()
-db = dbAccess(dbFile)
+db = dbAccess(currentDirName+dbFile)
 msg = msgObject()
 rejoinList = []
 abuseDict = {}
@@ -61,7 +61,7 @@ nickChangeTimeout = []
 def identifyHook(userdata):
   # get password and identify
   try:
-    file = open(passwordFile, 'r')
+    file = open(currentDirName + passwordFile, 'r')
   except IOError as err:
     print err
   else:
@@ -71,7 +71,7 @@ def identifyHook(userdata):
   return False
     
     
-def chanJoinHook(userdata):
+def joinChannels():
   # ajoin channels
   for chan in db.listChans():
     xchat.command("join %s" % chan)
@@ -146,6 +146,7 @@ chanMsgFunctions = [
   #godwinsLaw, 
   weeaboo,
   ponies, 
+  forCadie,
   helpFunction,
   genericHighlight, 
   parenMatcher, 
@@ -232,13 +233,20 @@ xchat.hook_print("Private Action to Dialog", ScanPrivMsg)
 # callback when bot receives a notice
 def ScanNotice(word, word_eol, userdata):
   sender = word[0]
+  text = word_eol[1]
+  print ">>>>" + text
   type = word[1].split()[0]
   
-  #if it is a nickserv status request
-  if sender == "NickServ" and type == "STATUS":
-    type, nick, level = word[1].split()
+  # if it is a nickserv status request
+  if sender == "NickServ" and text.split()[0] == "STATUS":
+    type, nick, level = text.split()
     statusReturn(nick, level, db)
-  xchat.EAT_PLUGIN
+  # if server has identified the bot, join channels
+  elif sender == "NickServ" and string.count(text, "Password accepted") > 0: #text == "Password accepted -- you are now recognized.": 
+    print ">>>I am here"
+    joinChannels()
+  
+  return xchat.EAT_PLUGIN
 xchat.hook_print('Notice', ScanNotice)
 
 
@@ -246,7 +254,7 @@ xchat.hook_print('Notice', ScanNotice)
 def ScanJoinMsg(word, word_eol, userdata):
   joinNick, joinChannel, joinHost = word
   checkForProxyMessage(joinNick, joinChannel)
-  xchat.EAT_PLUGIN
+  return xchat.EAT_PLUGIN
 xchat.hook_print('Join', ScanJoinMsg)
 
 
@@ -255,10 +263,12 @@ def ScanNickMsg(word, word_eol, userdata):
   newName = word[1]
   nickChangeTimeout.append(newName)
   xchat.hook_timer(10000, endNickTimeout)  # 10 second timeout
+  
   channel = xchat.get_info("channel")
   checkForProxyMessage(newName, channel)
-  xchat.command("msg ns status %s" % newName)
-  xchat.EAT_PLUGIN
+  
+  # xchat.command("msg ns status %s" % newName)
+  return xchat.EAT_PLUGIN
 xchat.hook_print('Change Nick', ScanNickMsg)
 
 
@@ -354,7 +364,6 @@ def initialization(userdata):
   xchat.command("nick %s" % botName)
   
   xchat.hook_timer(2000, identifyHook)
-  xchat.hook_timer(4000, chanJoinHook)
   
   xchat.hook_timer(30000, connectionCheck)  # every 30 seconds
   

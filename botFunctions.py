@@ -439,7 +439,7 @@ def aOrB(msg, botName, channel, db):
       
       
 def thankBot(msg, botName, channel, db):
-  if msg.formMatchRe('.*(thank you|thanks|(good|nice) job).*'+botName):
+  if msg.formMatchRe('.*(thank you|thanks|ty|(good|nice) job).*'+botName):
     xchat.command("msg %s %s" % (channel, random.choice(text.thanksResponse)))
     return True
   return False
@@ -558,6 +558,13 @@ def ponies(msg, botName, channel, db):
     else:
       xchat.command("msg %s \00313,8P\00312,7O\0039,4N\0038,13I\0037,12E\0034,9S" % channel)
     lockDict['ponies'] = True
+    return True
+  return False
+  
+  
+def forCadie(msg, botName, channel, db):
+  if msg.rawMatchRe(".*~"):
+    xchat.command("msg %s ~" % channel)
     return True
   return False
       
@@ -927,6 +934,7 @@ def privMsgCatch(msg, botName, channel, db):
   return False
   
   
+# execute privledged actions if server has confirmed the nick's registered status
 def statusReturn(nick, level, db):
   temp = []
   for action in adminActions:
@@ -935,6 +943,7 @@ def statusReturn(nick, level, db):
         exec(action[1])
       temp.append(action)
       
+  # remove all actions relating to the nick
   for item in temp:
     adminActions.remove(item)
 
