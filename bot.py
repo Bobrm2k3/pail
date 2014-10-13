@@ -107,6 +107,7 @@ chanMsgFunctions = [
   getAdminList, getBanList, getChanList, getAdminList,
   manualCommand,
   botReset,
+  markov,
   badIdentify, 
   dotTxt, downvote, recallTxt,
   postCount,
@@ -165,6 +166,9 @@ def ScanChanMsg(word, word_eol, userdata):
   #increment post count
   db.incPostCount(msg.getUserName())
   
+  #add message to log
+  db.storeLog(msg.getUserName(), msg.rawStr, channel)
+  
   #if the event occured in an active channel and user isn't banned or abusive
   if channel.lower() not in db.listChans([True]):
     print '>>bot muted in %s<<' % channel
@@ -181,6 +185,7 @@ def ScanChanMsg(word, word_eol, userdata):
   else:
     for function in chanMsgFunctions:
       result = function(msg, botName, channel, db)
+      # if a functino triggered
       if result:
         #update abuseDict
         if msg.getUserName() in abuseDict:

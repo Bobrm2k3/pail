@@ -9,7 +9,6 @@ config.set('Section', 'server', 'frozen.coldfront.net')
 config.set('Section', 'port', '6667')
 config.set('Section', 'passwordFile', 'a9v823h4aio38t.txt')
 config.set('Section', 'database', 'bot.db')
-config.set('Section', 'source', 'bot.7z')
 
 # Writing configuration file to 'bot.conf'
 with open('bot.conf', 'wb') as configfile:

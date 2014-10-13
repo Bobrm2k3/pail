@@ -65,6 +65,13 @@ Vote to delete a .txt:
   -Deletes at five unique downvotes
  
  
+Generate markov chain of a user's or channel's messages
+  !markov <channel or nick>
+  What would <channel or nick> say?
+  -might be a bit slow to compute
+  -requires the user or channel has said at least 100 lines
+  
+ 
 Set timer:
   !timer <positive integer> (seconds|minutes|hours) <message>
   -bot will highlight you in the same channel after the time has elapsed with the message

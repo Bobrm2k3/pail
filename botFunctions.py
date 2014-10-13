@@ -5,6 +5,7 @@ import message
 import xchat, random, requests, string, re
 import time, datetime
 import subprocess
+from pymarkovchain import MarkovChain
 
 
 # flags and other variables
@@ -199,6 +200,36 @@ def messageByProxy(msg, botName, channel, db):
     return True
   return False
   
+  
+def markov(msg, botName, channel, db):
+  if msg.rawMatchRe('!markov (?P<source>#?[a-zA-Z]\S*)\s*$') or msg.rawMatchRe('what (would|does) (?P<source>#?[a-zA-Z]\S+) say\??'):
+    m = msg.getRegExpResult()
+    source = m.group('source')
+
+    if source[0] == '#':
+      logsList = db.getLogs(chan=source)
+    else:
+      logsList = db.getLogs(nick=source)
+    
+    if len(logsList) < 100:
+      xchat.command("msg %s Not enough data for %s" % (channel, source))
+      
+    else:
+      mc = MarkovChain("./markov_db")
+      ircText = ''
+      
+      for line in logsList:
+        # disqualify lines that are too short or are certain bot functions that start with '!'
+        if len(line.split(' ')) >= 5 and line[0] != '!':
+          ircText += line.replace('.','') + '. '
+          
+      mc.generateDatabase(ircText)
+      markovOutput = mc.generateString().capitalize()
+      xchat.command('msg %s "%s"  --%s' % (channel, markovOutput, source))
+      
+    return True
+  return False
+      
   
 def nsCalc(msg, botName, channel, db):
   if msg.rawMatchRe(r"!(ns|range) (?P<num>\d[\d,]+)(\.\d+)?"):

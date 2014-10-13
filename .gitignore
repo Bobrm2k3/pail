@@ -5,3 +5,5 @@ bot.db
 sqlite3.exe
 txtConvert.py
 *.pyc
+seedLogDb.py
+bot - Copy.db

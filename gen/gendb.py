@@ -31,6 +31,10 @@ with con:
   cur.execute("CREATE TABLE UserData(Nick TEXT UNIQUE, PostCount INTEGER)")
   
   cur.execute("CREATE TABLE UserQuotes(Nick TEXT NOT NULL, Txt TEXT NOT NULL, Downvotes TEXT)")
+  
+  cur.execute("CREATE TABLE Log(Nick TEXT NOT NULL, Message TEXT NOT NULL, Chan TEXT NOT NULL, Date TEXT NOT NULL)")
+  
+  con.commit()
 
   
   
