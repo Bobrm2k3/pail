@@ -378,30 +378,6 @@ def insultBot(msg, botName, channel, db):
   return False
     
     
-# pop culture references
-def mediaReference(msg, botName, channel, db):
-  #zork
-  if msg.formMatchRe(".*it is pitch black"):
-    xchat.command("msg %s You are likely to be eaten by a grue" % channel)
-  elif msg.formMatchRe(".*what( is|'s) a grue"):
-    xchat.command("msg %s The grue is a sinister, lurking presence in the dark places of the earth.\
-    Its favorite diet is adventurers, but its insatiable appetite is tempered by its fear of light.\
-    No grue has ever been seen by the light of day, and few have survived its fearsome jaws to tell the tale." % channel)
-    
-  #dune
-  elif msg.formMatchRe(".*what(s| is) in the box"):
-    xchat.command("msg %s PAIN" % channel)
-    
-  #queen
-  elif msg.formMatchRe('is this the real life'):
-    xchat.command("msg %s Is this just fantasy" % channel)
-  elif msg.formMatchRe('open your eyes'):
-    xchat.command("msg %s Look up to the skies and see" % channel)
-    
-  else: return False
-  return True
-    
-    
 def adjAssVerb(msg, botName, channel, db):
   if msg.formSearchRe('(sweet|bad|kick|gay|bitch|quick|dumb)[ -]?ass \S{4,10}.*'):
     m = msg.getRegExpResult()
@@ -537,17 +513,6 @@ def colorize(msg, botName, channel, db):
     xchat.command("msg %s %s" % (channel, message))
     return True
   return False
-  
-  
-def rps(msg, botName, channel, db):
-  if msg.formMatchRe('rock\s*$'):
-    xchat.command("msg %s paper" % channel)
-  elif msg.formMatchRe('paper\s*$'):
-    xchat.command("msg %s scissors" % channel)
-  elif msg.formMatchRe('scissors\s*$'):
-    xchat.command("msg %s rock" % channel)
-  else: return False
-  return True
 
       
 def yoMama(msg, botName, channel, db):
@@ -612,9 +577,7 @@ def genericHighlight(msg, botName, channel, db):
       
       
 def parenMatcher(msg, botName, channel, db):
-  #don't trigger if the message has :( and that is the only open paren in it
-  # removed code not matching ascii faces-    not msg.rawSearchRe("[<>]_[<>]|(:|;)(-|')?(<|\(|\{)|<-|<3")
-  if [x in ['{','[','(','<'] for x in msg.rawStr].count(True) > 0:
+  if not msg.rawMatchRe(".*([<>]_[<>]|(:|;)(-|')?(<|\(|\{)|<-|<3)\s*$") and [x in ['{','[','(','<'] for x in msg.rawStr].count(True) > 0:
     message = ''
     parenDict = {'(':')','[':']','{':'}','<':'>'}
     for char in msg.rawStr:
@@ -910,6 +873,7 @@ def openCsServer(msg, botName, channel, db):
   return False
   
   
+
 # identifies again and rejoins channels
 def botReset(msg, botName, channel, db):
   if msg.rawMatchRe("!reset\s*$") and msg.getUserName().lower() in db.listUserlist([ADMIN,SUPREME_ADMIN]):

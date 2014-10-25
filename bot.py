@@ -35,7 +35,7 @@ import xchat, random, time, ConfigParser
 
 
 # program start
-print ">> bot.py loading <<"
+print ">>> bot.py loading"
 
 #  CONFIG STUFF
 configFile = currentDirName+"bot.conf"
@@ -48,6 +48,17 @@ portNum = config.get('Section', 'port')
 passwordFile = config.get('Section', 'passwordFile')
 dbFile = config.get('Section', 'database')
 
+status = {
+  "connecting": False,
+  "connected": False,
+  "connectAttempt": 0,
+  "identifying": False,
+  "identified": False,
+  "unbanChanList": [],
+  "cannotJoinChans": [],
+  "declareFailure": False
+}
+
 # initialization stuff
 random.seed()
 db = dbAccess(currentDirName+dbFile)
@@ -58,42 +69,28 @@ nickChangeTimeout = []
 
 
 
-def identifyHook(userdata):
+def identifyWithServer():
   # get password and identify
   try:
     file = open(currentDirName + passwordFile, 'r')
   except IOError as err:
     print err
+    status["declareFailure"] = True
   else:
     password = file.readline().replace('\n','')
     file.close()
     xchat.command("msg nickserv identify %s" % password)
-  return False
     
     
 def joinChannels():
-  # ajoin channels
-  for chan in db.listChans():
-    xchat.command("join %s" % chan)
-  return False
-
+  actualChanList = xchat.get_list('channels')
+  chanList = db.listChans()
   
-
-#timed hook to send any waiting messages to people already in the channels
-def StartupProxyMessageCheck(userdata):
-  chanList = xchat.get_list("channels")
   for chan in chanList:
-    if chan.type == 2:   # a channel, not a query window or server
-      chanContext = chan.context
-      chanContext.set()
-      chanName = chanContext.get_info("channel")
-      userList = chanContext.get_list("users")
+    if chan not in [x.channel for x in actualChanList]:
+      xchat.command("join %s" % chan)
 
-      for user in userList:
-        checkForProxyMessage(user.nick, chanName)
-        
-  return False  #turn it off
-xchat.hook_timer(6000, StartupProxyMessageCheck)  # in 6 seconds
+
 
 
 chanMsgFunctions = [
@@ -127,7 +124,6 @@ chanMsgFunctions = [
   isBot, 
   howAreYou, howAreThings,
   insultBot, praiseBot, 
-  mediaReference, 
   willItBlend, 
   adjAssVerb, 
   sadTruths, 
@@ -140,11 +136,9 @@ chanMsgFunctions = [
   youreDumb, 
   openCsServer,
   colorize, 
-  rps, 
   yoMama, 
   yolo,
   yelling, 
-  #godwinsLaw, 
   weeaboo,
   ponies, 
   forCadie,
@@ -152,7 +146,7 @@ chanMsgFunctions = [
   genericHighlight, 
   parenMatcher, 
   buttBot
-  ]
+]
     
 
 # callback when a message is posted in a channel bot is in
@@ -185,7 +179,7 @@ def ScanChanMsg(word, word_eol, userdata):
   else:
     for function in chanMsgFunctions:
       result = function(msg, botName, channel, db)
-      # if a functino triggered
+      # if a function triggered
       if result:
         #update abuseDict
         if msg.getUserName() in abuseDict:
@@ -213,7 +207,8 @@ privMsgFunctions = [
   addAdmin, delAdmin,
   sourceRequest,
   botReset,
-  privMsgCatch] 
+  privMsgCatch
+] 
 
 # callback when private message received
 def ScanPrivMsg(word, word_eol, userdata): 
@@ -235,24 +230,81 @@ xchat.hook_print("Private Action to Dialog", ScanPrivMsg)
 
 
 
+# send any waiting messages to people already in the channels
+def chanProxyMessageCheck():
+  chanList = xchat.get_list("channels")
+  for chan in chanList:
+    if chan.type == 2:   # a channel, not a query window or server
+      chanContext = chan.context
+      chanContext.set()
+      chanName = chanContext.get_info("channel")
+      userList = chanContext.get_list("users")
+
+      for user in userList:
+        checkForProxyMessage(user.nick, chanName)
+
+        
+# check for messages that should be delivered now
+def checkForProxyMessage(nick, channel):
+  newMessages = db.checkMessages(nick.lower(), channel)
+  if newMessages != None:
+    for newMsg in newMessages:
+      xchat.command("msg %s %s" % (channel, newMsg))
+
+
+
+
+
 # callback when bot receives a notice
 def ScanNotice(word, word_eol, userdata):
   sender = word[0]
   text = word_eol[1]
-  print ">>>>" + text
-  type = word[1].split()[0]
+  print "<<" + sender + ">>  --- " + text 
   
   # if it is a nickserv status request
   if sender == "NickServ" and text.split()[0] == "STATUS":
+    type = word[1]
     type, nick, level = text.split()
     statusReturn(nick, level, db)
+    
   # if server has identified the bot, join channels
-  elif sender == "NickServ" and string.count(text, "Password accepted") > 0: #text == "Password accepted -- you are now recognized.": 
-    print ">>>I am here"
-    joinChannels()
+  elif sender == "NickServ" and string.count(text, "Password accepted") > 0: 
+    status["identified"] = True
+    status["identifying"] = False
+    statusCheck()
+    
+  elif sender == "ChanServ" and text == "Permission denied.":
+    #assume bot was trying to unban self from a channel, declare channel can't be joined
+    status["cannotJoinChans"].append(status["unbanChanList"][0])
+    status["unbanChanList"].pop(0)
+    if len(status["unbanChanList"]) != 0:
+      xchat.command("cs unban %s" % status["unbanChanList"][0])
+      
+    
+  elif sender == "ChanServ" and string.count(text, "You have been unbanned") > 0:
+    xchat.command("join %s" % status["unbanChanList"][0])
+    status["unbanChanList"].pop(0)
+    if len(status["unbanChanList"]) != 0:
+      xchat.command("cs unban %s" % status["unbanChanList"][0])
   
   return xchat.EAT_PLUGIN
 xchat.hook_print('Notice', ScanNotice)
+
+
+def ScanBanMsg(word, word_eol, userdata):
+  channel = word[0]
+  
+  #if bot is banned from an assigned channel and not waiting for unbanning response
+  if channel in db.listChans() and channel not in status["cannotJoinChans"]:
+    #try to unban self
+    status["unbanChanList"].append(channel)
+    if len(status["unbanChanList"]) == 1:
+      xchat.command("cs unban %s" % channel)
+
+  return xchat.EAT_PLUGIN
+xchat.hook_print('Banned', ScanBanMsg)
+
+
 
 
 # callback when anyone joins a channel bot is in 
@@ -261,6 +313,12 @@ def ScanJoinMsg(word, word_eol, userdata):
   checkForProxyMessage(joinNick, joinChannel)
   return xchat.EAT_PLUGIN
 xchat.hook_print('Join', ScanJoinMsg)
+
+
+def selfJoinChannel(word, word_eol, userdata):
+  chanProxyMessageCheck()
+  return xchat.EAT_PLUGIN
+xchat.hook_print('You Join', selfJoinChannel)
 
 
 # when someone changes nick
@@ -278,7 +336,7 @@ xchat.hook_print('Change Nick', ScanNickMsg)
 
 
 def handleKickMsg(kicker, kickee, kickChan, kickMsg):
-  #if bot got kicked
+  #if bot got kicked, try to rejoin
   if xchat.nickcmp(kickee, xchat.get_info("nick")) == 0:
     xchat.command("join %s" % kickChan)
     message = random.choice(text.revenge) % kicker
@@ -306,32 +364,45 @@ def scanOwnKickMsg(word, word_eol, userdata):
 xchat.hook_print("You Kicked", scanOwnKickMsg)
 
 
-dontGetBannedCount = 0  #fixes an issue where the bot opens too many connections to the server and gets banned
-def connectionCheck(userdata):
-  global dontGetBannedCount
-  if xchat.get_info('server') is None and dontGetBannedCount == 0:
-    xchat.hook_timer(60000, initialization)  #wait 60 seconds to try reconnect
-    dontGetBannedCount = 10
-    return False
-  dontGetBannedCount -= 1
-  return True
+
+
+# changes in bot's connection status
+  
+def serverConnect(word, word_eol, userdata):
+  if status["connecting"]:
+    status["connected"] = True
+    status["connecting"] = False
+    status["connectAttempt"] = 0
+    statusCheck()
+  return xchat.EAT_PLUGIN
+  
+#treating the MOTD as being fully connected to the server seems to work, I choose not to fight it
+xchat.hook_print("Motd", serverConnect)
+xchat.hook_print("MOTD Skipped", serverConnect)
+#xchat.hook_print("Connected", serverConnect)
+
+
+def serverConnectFail(word, word_eol, userdata):
+  status["connecting"] = False
+  xchat.hook_timer(5000, delayedStatusCheck)  # 5 second delay before reconnect attempt
+  return xchat.EAT_PLUGIN
+xchat.hook_print("Connection Failed", serverConnectFail)
+
+
+def serverDisconnect(word, word_eol, userdata):
+  if status["connected"]:
+    status["connected"] = False
+    status["connecting"] = False
+    xchat.hook_timer(5000, delayedStatusCheck)  # 5 second delay before reconnect attempt
+  return xchat.EAT_PLUGIN
+xchat.hook_print("Ping Timeout", serverDisconnect)
+xchat.hook_print("Disconnected", serverDisconnect)
 
 
 
-# if bot isn't in a channel it should be in (has been kicked), it tries to join
-def chanPresenceCheck(userdata):
-  # also check if the name is correct
-  if xchat.nickcmp(botName, xchat.get_info("nick")) != 0:
-    xchat.command("nick %s" % botName)
 
-  actualChanList = xchat.get_list('channels')
-  chanList = db.listChans()
-  for chan in chanList:
-    if chan not in [x.channel for x in actualChanList]:
-      xchat.command("join %s" % chan)
-  return True
-xchat.hook_timer(120000, chanPresenceCheck)  # every 2 minutes
 
+# user limitations
 
 def handleAbuseDict(userdata):
   for nick in abuseDict.keys():
@@ -348,34 +419,42 @@ def endNickTimeout(userdata):
   nickChangeTimeout.pop(0)
   return False
 
+  
 
-# check for messages that should be delivered now
-def checkForProxyMessage(nick, channel):
-  newMessages = db.checkMessages(nick.lower(), channel)
-  if newMessages != None:
-    for newMsg in newMessages:
-      xchat.command("msg %s %s" % (channel, newMsg))
-      
-
-
-def initialization(userdata):
-  print ">>Initializing"
   
-  # join server if not already connected
-  if xchat.get_info('server') is None:
-    xchat.command("server %s %s" % (serverName, portNum))
-    
-  # set nick
-  xchat.command("nick %s" % botName)
-  
-  xchat.hook_timer(2000, identifyHook)
-  
-  xchat.hook_timer(30000, connectionCheck)  # every 30 seconds
-  
+def delayedStatusCheck(userdata):
+  statusCheck()
   return False
-initialization(0)  #get called on first run
+
+
+def statusCheck():
+  if not status["declareFailure"]:
   
+    if not status["connected"] and not status["connecting"]:
+      if status["connectAttempt"] >= 5:
+        # reset attempts, but don't try again for 10 minutes
+        status["connectAttempt"] = 0
+        xchat.hook_timer(600000, delayedStatusCheck)
+      else:
+        print ">>> Attempting to connect to server"
+        xchat.command("server %s %s" % (serverName, portNum))
+        status["connecting"] = True
+        status["connectAttempt"] += 1
+      
+    elif not status["identified"] and not status["identifying"]:
+      print ">>> Attempting to identify with server"
+      xchat.command("nick %s" % botName)
+      identifyWithServer()
+      status["identifying"] = True
+      
+    else:
+      print ">>> Attempting to join channels"
+      joinChannels()
+
+# run on start to initialize bot
+statusCheck()
   
+
 #1. bot may not injure a human being or, through inaction, allow a human being to come to harm.
 #2. bot must obey the orders given to it by human beings, except where such orders would conflict with the First Law.
 #3. bot must protect its own existence as long as such protection does not conflict with the First or Second Laws.
