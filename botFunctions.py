@@ -627,12 +627,27 @@ def wikiLink(msg, botName, channel, db):
   
   
 def lmgtfy(msg, botName, channel, db):
-  if msg.rawMatchRe('!google (?P<text>.+)\s*$'):
+  if msg.rawMatchRe('!(google|lmgtfy) (?P<text>.+)\s*$'):
     m = msg.getRegExpResult()
     xchat.command("msg %s http://lmgtfy.com/?q=%s" % (channel, m.group('text').replace(' ','+')))
     return True
   return False
+
+  
+def legitSite(msg, botName, channel, db):
+  if msg.rawMatchRe('!legit (?P<url>(https?://)?[a-z0-9\-\.]+\.[a-z\.]{2,6}/?\S*)\s*$'):
+    url = msg.getRegExpResult().group('url')
     
+    response = safeBrowsingApi(url, botName)
+    if response[0] == 200:
+      xchat.command("msg %s The requested URL is flagged for: %s" % (channel, response[1]))
+    elif response[0] == 204:
+      xchat.command("msg %s The requested URL is legitimate" % channel)
+    else:
+      xchat.command("msg %s Something went wrong (%d: Probably google's fault)" % (channel, response[0]))
+    return True
+  return False
+  
     
 def buttBot(msg, botName, channel, db):
   if random.randint(0,1200) == 0 and msg.getFormLen() > 3:
@@ -874,32 +889,13 @@ def openCsServer(msg, botName, channel, db):
   
   
 
-# identifies again and rejoins channels
-def botReset(msg, botName, channel, db):
-  if msg.rawMatchRe("!reset\s*$") and msg.getUserName().lower() in db.listUserlist([ADMIN,SUPREME_ADMIN]):
-    newAdminAction(msg.getUserName(), 'xchat.command("msg %s Initiating reset")' % channel)
-    pwFile = "a9v823h4aio38t.txt"
-    # get password and identify
-    try:
-      file = open(pwFile, 'r')
-    except IOError as err:
-      print err
-    else:
-      password = file.readline().replace('\n','')
-      file.close()
-      newAdminAction(msg.getUserName(), 
-        'xchat.command("ns ghost %s %s")' % (botName, password))
-      newAdminAction(msg.getUserName(), 
-        'xchat.command("nick %s")' % botName )
-      newAdminAction(msg.getUserName(), 
-        'xchat.command("msg nickserv identify %s")' % password)
-
-    for chan in db.listChans():
-      newAdminAction(msg.getUserName(), 
-        'xchat.hook_timer(1500, generalTimer, "join %s")' % chan)
-    checkUserStatus(msg.getUserName())
-    return True
-  return False
+# disconnects bot in an attempt to reset everything
+# def botReset(msg, botName, channel, db):
+  # if msg.rawMatchRe("!reset\s*$") and msg.getUserName().lower() in db.listUserlist([ADMIN,SUPREME_ADMIN]):
+    # newAdminAction(msg.getUserName(), 'xchat.command("disconnect")')
+    # checkUserStatus(msg.getUserName())
+    # return True
+  # return False
 
 
 def helpFunction(msg, botName, channel, db):
@@ -910,7 +906,6 @@ def helpFunction(msg, botName, channel, db):
     elif arg == 'about':
       xchat.command("msg %s This bot is written by Syd - Credit to Bucket written by Randall Monroe for inspiration" % channel)
       xchat.command("msg %s You are free to modify and distribute the code under GPLv3" % channel)
-      #xchat.command("msg %s Current version: %s" % (channel, __module_version__))
     elif arg == 'admin':
       xchat.command("msg %s Admins only: !ban <nick>, !unban <nick>, !addchan <chan>, !delchan <chan>, !reset" % channel)
       xchat.command("msg %s Everyone: !banlist, !chanlist, !adminlist" % channel)
@@ -967,6 +962,19 @@ def youtubeCall(id):
     title = re.sub('[^\x00-\x7F]', '#', data["data"]["title"])
     # title = re.sub('[^\w\s\-!?\[\]:;,"]\'', '#', data["data"]["title"])
     return title
+
+
+def safeBrowsingApi(url, botName):
+  link = "https://sb-ssl.google.com/safebrowsing/api/lookup?client=%s&key=%s&appver=%s&pver=3.1&url=%s" % (botName.lower(), "AIzaSyCdS4ZMXYos289LzLudIO3_pweBRdvXHVo", '1', subPercentEncoding(url))
+    
+  req = requests.get(link,
+     timeout=2.0,
+     config={"safe_mode": True})
+    
+  if req.status_code == 200:
+    return [req.status_code, req.content]
+  else:
+    return [req.status_code, None]
     
     
 def wikiCall(title):
@@ -1029,6 +1037,20 @@ def getStrBitValue(str):
     sum += ord(char)
   return sum
     
+    
+def subPercentEncoding(str):
+  newStr = str
+  reservedChars = {
+    '!':'%21', '#':'%23', '$':'%24', '&': '%26', "'":'%27', '(':'%28',
+    ')':'%29', '*':'%2A', '+':'%2B', ',':'%2C', '/':'%2F', ';':'%3B',
+    '=':'%3D', '?':'%3F', '@':'%40', '[':'%5B', ']':'%5D'
+  }
+  
+  for charKey, percentValue in reservedChars.iteritems():
+    newStr = newStr.replace(charKey, percentValue)
+    
+  return newStr
+  
     
 #removes punctuation and spaces at the end of a string
 def removeEndPunct(myString): return myString.rstrip(' !.,?')

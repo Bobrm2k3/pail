@@ -101,6 +101,11 @@ Get source code:
   -bot will send you the source code via DCC, it is in a .7z file so make sure your IRC client accepts those
   
   
+Check if site is legitimate
+  !legit <url>
+  -checks google's safebrowsing API for it the site hosts malware or phishing attempts
+  
+  
 Send proxy message to an offline nick:
   !message <nick> <message>
   -bot will relay that message when that person joins the channel you sent the command from

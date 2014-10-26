@@ -103,7 +103,6 @@ chanMsgFunctions = [
   addChannel, delChannel,
   getAdminList, getBanList, getChanList, getAdminList,
   manualCommand,
-  botReset,
   markov,
   badIdentify, 
   dotTxt, downvote, recallTxt,
@@ -115,7 +114,7 @@ chanMsgFunctions = [
   autoResponseRegister,
   slapByProxy, attackByProxy, 
   nsCalc, 
-  youtubeLink, lmgtfy,
+  youtubeLink, lmgtfy, legitSite,
   genRandom, 
   greetings, 
   apology, 
@@ -206,7 +205,6 @@ privMsgFunctions = [
   manualCommand,
   addAdmin, delAdmin,
   sourceRequest,
-  botReset,
   privMsgCatch
 ] 
 
@@ -259,7 +257,6 @@ def checkForProxyMessage(nick, channel):
 def ScanNotice(word, word_eol, userdata):
   sender = word[0]
   text = word_eol[1]
-  print "<<" + sender + ">>  --- " + text 
   
   # if it is a nickserv status request
   if sender == "NickServ" and text.split()[0] == "STATUS":
@@ -298,6 +295,7 @@ def ScanBanMsg(word, word_eol, userdata):
   if channel in db.listChans() and channel not in status["cannotJoinChans"]:
     #try to unban self
     status["unbanChanList"].append(channel)
+    #only unban from one channel at a time so if permission is denied, the channel is known
     if len(status["unbanChanList"]) == 1:
       xchat.command("cs unban %s" % channel)
 
@@ -393,6 +391,8 @@ def serverDisconnect(word, word_eol, userdata):
   if status["connected"]:
     status["connected"] = False
     status["connecting"] = False
+    status["identified"] = False 
+    status["identifying"] = False
     xchat.hook_timer(5000, delayedStatusCheck)  # 5 second delay before reconnect attempt
   return xchat.EAT_PLUGIN
 xchat.hook_print("Ping Timeout", serverDisconnect)
@@ -429,6 +429,9 @@ def delayedStatusCheck(userdata):
 
 def statusCheck():
   if not status["declareFailure"]:
+    if xchat.get_info("server") != None:
+      status["connected"] = True
+  
   
     if not status["connected"] and not status["connecting"]:
       if status["connectAttempt"] >= 5:
