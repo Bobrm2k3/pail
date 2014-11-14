@@ -105,7 +105,7 @@ chanMsgFunctions = [
   manualCommand,
   markov,
   badIdentify, 
-  dotTxt, downvote, recallTxt,
+  dotTxt, txtVote, recallTxt,
   postCount,
   goodBandName,
   setTimer, 
@@ -138,9 +138,7 @@ chanMsgFunctions = [
   yoMama, 
   yolo,
   yelling, 
-  weeaboo,
   ponies, 
-  forCadie,
   helpFunction,
   genericHighlight, 
   parenMatcher, 
@@ -371,6 +369,7 @@ def serverConnect(word, word_eol, userdata):
     status["connected"] = True
     status["connecting"] = False
     status["connectAttempt"] = 0
+    db.txtTimeVote()  #putting this here for now </laziness>
     statusCheck()
   return xchat.EAT_PLUGIN
   

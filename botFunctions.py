@@ -1,5 +1,4 @@
 from botDbAccess import *
-from quote import *
 import text
 import message
 import xchat, random, requests, string, re
@@ -9,7 +8,7 @@ from pymarkovchain import MarkovChain
 
 
 # flags and other variables
-lockDict = {"ponies":False, "weeaboo":False, "yelling":False, "steal":False}
+lockDict = {"ponies":False, "yelling":False, "steal":False}
 adminActions = [] #list of tuples (nick, code string)
 sourceLocation = "https://github.com/Bobrm2k3/pail"
 helpDocLocation = "https://github.com/Bobrm2k3/pail/blob/master/botwiki.txt"
@@ -202,14 +201,14 @@ def messageByProxy(msg, botName, channel, db):
   
   
 def markov(msg, botName, channel, db):
-  if msg.rawMatchRe('!markov (?P<source>#?[a-zA-Z]\S*)\s*$') or msg.rawMatchRe('what (would|does) (?P<source>#?[a-zA-Z]\S+) say\??'):
+  if msg.rawMatchRe('!markov (?P<source>#?[a-zA-Z]\S*)\s*$') or msg.rawMatchRe('what (would|does) (the )?(?P<source>#?[a-zA-Z]\S+) say\??'):
     m = msg.getRegExpResult()
     source = m.group('source')
 
     if source[0] == '#':
-      logsList = db.getLogs(chan=source)
+      logsList = db.getLogs(chan=source, lines=2000)
     else:
-      logsList = db.getLogs(nick=source)
+      logsList = db.getLogs(nick=source, lines=2000)
     
     if len(logsList) < 100:
       xchat.command("msg %s Not enough data for %s" % (channel, source))
@@ -245,14 +244,13 @@ def dotTxt(msg, botName, channel, db):
     if num.isdigit():
       num = int(num)
     else:
+      # save 1 line of no number argument
       num = 1
     
-    nick = msg.getPrevNick(channel)
-    messages = msg.getPrevData(channel, num, nick)
-    quote = quoteObject(nick, messages)
-    
     if nick != msg.getUserName():
-      quote.saveToDb(db)
+      nick = msg.getPrevNick(channel)
+      messages = msg.getPrevData(channel, num, nick)
+      db.txtSave(nick, messages)
       xchat.command("msg %s Saved" % channel)
     else:
       xchat.command("msg %s No saving your own" % channel)
@@ -260,14 +258,20 @@ def dotTxt(msg, botName, channel, db):
   return False
   
   
-def downvote(msg, botName, channel, db):
-  if msg.rawMatchRe("!downvote (ID)?:?(?P<id>\d+)\s*$"):
+def txtVote(msg, botName, channel, db):
+  if msg.rawMatchRe("!(?P<voteType>(upvote|downvote)) (ID)?:?(?P<id>\d+)\s*$"):
     id = int(msg.getRegExpResult().group('id'))
-    result = db.txtDownVote(id, msg.getUserName())
-    if result == True:
-      xchat.command("msg %s Downvote registered" % channel)
+    voteType = msg.getRegExpResult().group('voteType')
+    if voteType == 'downvote':
+      vote = -1
+    elif voteType == 'upvote':
+      vote = 1
     else:
-      xchat.command("msg %s Error: '%s'" % (channel, result))
+      #error error
+      return True
+    
+    result = db.txtVote(id, msg.getUserName(), vote)
+    xchat.command("msg %s %s" % (channel, result))
     return True
   return False
 
@@ -275,13 +279,13 @@ def downvote(msg, botName, channel, db):
 def recallTxt(msg, botName, channel, db):
   if msg.rawMatchRe("(?P<nick>[\w\-\[\]\\^{}|]+).txt\s*$"):
     nick = msg.getRegExpResult().group('nick')
-    quote = quoteObject()
-    result = quote.fillFromDbNick(db, nick)
+    result = db.getTxtFromNick(nick)
    
     if result:
+      id, dbNick, quote = result
       lineOneFlag = True
-      for line in quote.quoteText:
-        xchat.command("msg %s %s<%s> %s" % (channel, ("ID:%s " % quote.id if lineOneFlag else ''), quote.nick, line))
+      for line in quote:
+        xchat.command("msg %s %s<%s> %s" % (channel, ("ID:%s " % id if lineOneFlag else ''), dbNick, line))
         lineOneFlag = False
     else:
       xchat.command("msg %s No quotes found for that nick" % channel)
@@ -291,7 +295,7 @@ def recallTxt(msg, botName, channel, db):
     
     
 def greetings(msg, botName, channel, db):
-  if msg.formMatchRe('(hi|hai|hello|hey|yo|sup|greetings|hola|hiya|good (morning|afternoon|evening|day)) '+botName):
+  if msg.formMatchRe('(hi|hai|hello|hey|yo|sup|greetings|hola|hiya|good ?(morning|afternoon|evening|day)) '+botName):
     message = random.choice(text.hello) % msg.getUserName()
     xchat.command("msg %s %s" % (channel, message))
     return True
@@ -537,14 +541,6 @@ def yelling(msg, botName, channel, db):
     return True
   return False
       
-      
-def weeaboo(msg, botName, channel, db):
-  if not lockDict['weeaboo'] and msg.formSearchRe('weeaboo'):
-    xchat.command("msg %s Did someone just say weeaboo?  'Cause I think I just heard someone say weeaboo" % channel)
-    xchat.command("me pulls out a paddle")
-    lockDict['weeaboo'] = True
-    return True
-  return False
     
 # PONIES!
 def ponies(msg, botName, channel, db):
@@ -557,13 +553,6 @@ def ponies(msg, botName, channel, db):
     return True
   return False
   
-  
-def forCadie(msg, botName, channel, db):
-  if msg.rawMatchRe(".*~"):
-    xchat.command("msg %s ~" % channel)
-    return True
-  return False
-      
  
 def genericHighlight(msg, botName, channel, db):
   #ends in question mark or starts with a question word
@@ -577,7 +566,7 @@ def genericHighlight(msg, botName, channel, db):
       
       
 def parenMatcher(msg, botName, channel, db):
-  if not msg.rawMatchRe(".*([<>]_[<>]|(:|;)(-|')?(<|\(|\{)|<-|<3)\s*$") and [x in ['{','[','(','<'] for x in msg.rawStr].count(True) > 0:
+  if not msg.rawMatchRe(".*([<>]_[<>]|(:|;)(-|')?(<|\(|\{)|<--?|<3)\s*$") and not msg.rawMatchRe("<3") and [x in ['{','[','(','<'] for x in msg.rawStr].count(True) > 0:
     message = ''
     parenDict = {'(':')','[':']','{':'}','<':'>'}
     for char in msg.rawStr:
@@ -635,7 +624,7 @@ def lmgtfy(msg, botName, channel, db):
 
   
 def legitSite(msg, botName, channel, db):
-  if msg.rawMatchRe('!legit (?P<url>(https?://)?[a-z0-9\-\.]+\.[a-z\.]{2,6}/?\S*)\s*$'):
+  if msg.rawMatchRe('!legit (?P<url>(https?://)?[a-z0-9\-\.]+\.[a-z\.]{2,6}/?)\s*$'):
     url = msg.getRegExpResult().group('url')
     
     response = safeBrowsingApi(url, botName)
@@ -829,7 +818,8 @@ def openCsServer(msg, botName, channel, db):
     "de_nuke",
     "de_overpass",
     "de_seaside",
-    "de_train"
+    "de_train",
+    "de_season"
   ]
   defaultMap = "de_dust2"
   

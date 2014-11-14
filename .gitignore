@@ -7,3 +7,5 @@ txtConvert.py
 *.pyc
 seedLogDb.py
 bot - Copy.db
+*.db
+quoteConvert.py
