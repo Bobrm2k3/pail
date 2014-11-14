@@ -55,14 +55,15 @@ Save a user.txt:
     
 Recall a user.txt:
   <nick>.txt
-  -returns a random saved .txt from that nick
+  -returns a saved .txt from that nick
   -Inludes the ID number of that .txt for downvoting
   
   
-Vote to delete a .txt:
+Vote on the quality of a .txt:
   !downvote <ID number>
-  -Adds a downvote to the .txt with the ID specified
-  -Deletes at five unique downvotes
+  !upvote <ID number>
+  -Adds a vote to the .txt with the ID specified
+  -Deletes at -5
  
  
 Generate markov chain of a user's or channel's messages

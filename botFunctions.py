@@ -14,20 +14,6 @@ sourceLocation = "https://github.com/Bobrm2k3/pail"
 helpDocLocation = "https://github.com/Bobrm2k3/pail/blob/master/botwiki.txt"
 
 
-
-# if chanop wants to silence or unsilence the bot
-# def mute(msg, botName, channel, db):
-  # if msg.getAccessLevel() == '~' or msg.getUserName().lower() in db.listUserlist([ADMIN, SUPREME_ADMIN]):
-    # if msg.rawMatchRe("!mute\s*$"):
-      # db.addChans(channel, False)
-      # xchat.command("msg %s %s silenced in %s." % (channel, botName, channel))
-      # return True
-    # elif msg.rawMatchRe("!unmute\s*$"):
-      # db.addChans(channel, True)
-      # xchat.command("msg %s %s unsilenced in %s." % (channel, botName, channel))
-      # return True
-  # return False
-
   
 # see if the message sets off any user set triggers
 def autoResponseTrigger(msg, botName, channel, db):
