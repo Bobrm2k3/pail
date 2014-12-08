@@ -16,30 +16,36 @@
 
 
 __module_name__ = "bot.py"
-__module_version__ = "1.9"
-__module_description__ = "a Bucket-like IRC chat bot"
+__module_version__ = "2.0"
+__module_description__ = "an IRC chat bot"
 
 
 import sys, os, inspect
 
+
 # create an arbitrary object, determine the path of the file it was created in (i.e. this one), remove the file name part
 # technically the previous workaround was uglier
-currentDirName = os.path.abspath(inspect.getsourcefile(lambda _: None)).replace(__module_name__, "")
+#currentDirName = os.path.abspath(inspect.getsourcefile(lambda _: None)).replace(__module_name__, "")
+currentDirName = "C:/Users/Syd/Documents/GitHub/pail/"  #temporary fix
 sys.path.append(currentDirName)
 
 import text
 from botDbAccess import *
 from message import *
 from botFunctions import *
-import xchat, random, time, ConfigParser
+import hexchat, random, time, configparser, datetime
 
+
+MAX_CONN_ATTEMPTS = 5
+
+#todo: make a main() and do better than making all of these variables lazy globals
 
 # program start
-print ">>> bot.py loading"
+print(">>> bot.py loading")
 
 #  CONFIG STUFF
 configFile = currentDirName+"bot.conf"
-config = ConfigParser.RawConfigParser()
+config = configparser.RawConfigParser()
 config.read(configFile)
 
 botName = config.get('Section', 'name')
@@ -74,21 +80,21 @@ def identifyWithServer():
   try:
     file = open(currentDirName + passwordFile, 'r')
   except IOError as err:
-    print err
+    print(err)
     status["declareFailure"] = True
   else:
     password = file.readline().replace('\n','')
     file.close()
-    xchat.command("msg nickserv identify %s" % password)
+    hexchat.command("msg nickserv identify %s" % password)
     
     
 def joinChannels():
-  actualChanList = xchat.get_list('channels')
+  actualChanList = hexchat.get_list('channels')
   chanList = db.listChans()
   
   for chan in chanList:
     if chan not in [x.channel for x in actualChanList]:
-      xchat.command("join %s" % chan)
+      hexchat.command("join %s" % chan)
 
 
 
@@ -102,6 +108,7 @@ chanMsgFunctions = [
   addAdmin, delAdmin,
   addChannel, delChannel,
   getAdminList, getBanList, getChanList, getAdminList,
+  botReset,
   manualCommand,
   markov,
   badIdentify, 
@@ -149,7 +156,7 @@ chanMsgFunctions = [
 # callback when a message is posted in a channel bot is in
 def ScanChanMsg(word, word_eol, userdata):
   global msg
-  channel = xchat.get_info("channel")
+  channel = hexchat.get_info("channel")
   
   #create the message object
   msg.strUpdate(word, channel)
@@ -162,44 +169,49 @@ def ScanChanMsg(word, word_eol, userdata):
   
   #if the event occured in an active channel and user isn't banned or abusive
   if channel.lower() not in db.listChans([True]):
-    print '>>bot muted in %s<<' % channel
-    return xchat.EAT_NONE
+    print('>>> bot muted in %s' % channel)
+    return hexchat.EAT_NONE
   elif msg.getUserName().lower() in db.listUserlist([BANNED]):
-    print '>>user %s is on banlist<<' % msg.getUserName()
-    return xchat.EAT_NONE
+    print('>>> user %s is on banlist' % msg.getUserName())
+    return hexchat.EAT_NONE
   elif msg.getUserName() in abuseDict and abuseDict[msg.getUserName()] > 5:
-    print '>>user %s is temporarily banned for bot flood<<' % msg.getUserName()
-    return xchat.EAT_NONE
+    print('>>> user %s is temporarily banned for bot flood' % msg.getUserName())
+    return hexchat.EAT_NONE
   elif msg.getUserName() in nickChangeTimeout:  
-    print '>>user %s is on timeout for nick change<<' % msg.getUserName()
-    return xchat.EAT_NONE
+    print('>>> user %s is on timeout for nick change' % msg.getUserName())
+    return hexchat.EAT_NONE
   else:
     for function in chanMsgFunctions:
       result = function(msg, botName, channel, db)
       # if a function triggered
       if result:
         #update abuseDict
+        if abuseDict == {}:
+          hexchat.hook_timer(20000, handleAbuseDict)  # only turn on the timer when necessary
+          
         if msg.getUserName() in abuseDict:
           abuseDict[msg.getUserName()] += 1
         else:
           abuseDict[msg.getUserName()] = 1
-        return xchat.EAT_PLUGIN
+        return hexchat.EAT_PLUGIN
       
       
-xchat.hook_print("Channel Message", ScanChanMsg)
-xchat.hook_print("Channel Action", ScanChanMsg)
-xchat.hook_print("Channel Action Hilight", ScanChanMsg)
-xchat.hook_print("Channel Msg Hilight", ScanChanMsg)
-xchat.hook_print("Channel Notice", ScanChanMsg)
+hexchat.hook_print("Channel Message", ScanChanMsg)
+hexchat.hook_print("Channel Action", ScanChanMsg)
+hexchat.hook_print("Channel Action Hilight", ScanChanMsg)
+hexchat.hook_print("Channel Msg Hilight", ScanChanMsg)
+hexchat.hook_print("Channel Notice", ScanChanMsg)
 
 
 
 privMsgFunctions = [
   autoResponseRegister,
   helpFunction,
+  openCsServer,
   addChannel, delChannel,
   banUser, unbanUser,
   getAdminList, getChanList, getBanList,
+  botReset,
   manualCommand,
   addAdmin, delAdmin,
   sourceRequest,
@@ -209,26 +221,26 @@ privMsgFunctions = [
 # callback when private message received
 def ScanPrivMsg(word, word_eol, userdata): 
   global msg
-  channel = xchat.get_info("channel")
+  channel = hexchat.get_info("channel")
   msg.strUpdate(word, channel)
 
   if msg.getUserName().lower() not in db.listUserlist([BANNED]):
     for function in privMsgFunctions:
       result = function(msg, botName, channel, db)
-      if result: return xchat.EAT_PLUGIN
+      if result: return hexchat.EAT_PLUGIN
         
-  return xchat.EAT_NONE
+  return hexchat.EAT_NONE
 
-xchat.hook_print("Private Message", ScanPrivMsg)
-xchat.hook_print("Private Message to Dialog", ScanPrivMsg)
-xchat.hook_print("Private Action", ScanPrivMsg)
-xchat.hook_print("Private Action to Dialog", ScanPrivMsg)
+hexchat.hook_print("Private Message", ScanPrivMsg)
+hexchat.hook_print("Private Message to Dialog", ScanPrivMsg)
+hexchat.hook_print("Private Action", ScanPrivMsg)
+hexchat.hook_print("Private Action to Dialog", ScanPrivMsg)
 
 
 
 # send any waiting messages to people already in the channels
 def chanProxyMessageCheck():
-  chanList = xchat.get_list("channels")
+  chanList = hexchat.get_list("channels")
   for chan in chanList:
     if chan.type == 2:   # a channel, not a query window or server
       chanContext = chan.context
@@ -245,7 +257,7 @@ def checkForProxyMessage(nick, channel):
   newMessages = db.checkMessages(nick.lower(), channel)
   if newMessages != None:
     for newMsg in newMessages:
-      xchat.command("msg %s %s" % (channel, newMsg))
+      hexchat.command("msg %s %s" % (channel, newMsg))
 
 
 
@@ -263,7 +275,7 @@ def ScanNotice(word, word_eol, userdata):
     statusReturn(nick, level, db)
     
   # if server has identified the bot, join channels
-  elif sender == "NickServ" and string.count(text, "Password accepted") > 0: 
+  elif sender == "NickServ" and text.count("Password accepted") > 0: 
     status["identified"] = True
     status["identifying"] = False
     statusCheck()
@@ -273,17 +285,17 @@ def ScanNotice(word, word_eol, userdata):
     status["cannotJoinChans"].append(status["unbanChanList"][0])
     status["unbanChanList"].pop(0)
     if len(status["unbanChanList"]) != 0:
-      xchat.command("cs unban %s" % status["unbanChanList"][0])
+      hexchat.command("cs unban %s" % status["unbanChanList"][0])
       
     
-  elif sender == "ChanServ" and string.count(text, "You have been unbanned") > 0:
-    xchat.command("join %s" % status["unbanChanList"][0])
+  elif sender == "ChanServ" and text.count("You have been unbanned") > 0:
+    hexchat.command("join %s" % status["unbanChanList"][0])
     status["unbanChanList"].pop(0)
     if len(status["unbanChanList"]) != 0:
-      xchat.command("cs unban %s" % status["unbanChanList"][0])
+      hexchat.command("cs unban %s" % status["unbanChanList"][0])
   
-  return xchat.EAT_PLUGIN
-xchat.hook_print('Notice', ScanNotice)
+  return hexchat.EAT_PLUGIN
+hexchat.hook_print('Notice', ScanNotice)
 
 
 def ScanBanMsg(word, word_eol, userdata):
@@ -295,69 +307,78 @@ def ScanBanMsg(word, word_eol, userdata):
     status["unbanChanList"].append(channel)
     #only unban from one channel at a time so if permission is denied, the channel is known
     if len(status["unbanChanList"]) == 1:
-      xchat.command("cs unban %s" % channel)
+      hexchat.command("cs unban %s" % channel)
 
-  return xchat.EAT_PLUGIN
-xchat.hook_print('Banned', ScanBanMsg)
+  return hexchat.EAT_PLUGIN
+hexchat.hook_print('Banned', ScanBanMsg)
 
 
+def NickClashMsg(word, word_eol, userdata):
+  file = open(currentDirName + passwordFile, 'r')
+  password = file.readline().replace('\n','')
+  file.close()
+  hexchat.command("ns ghost %s %s" % (botName, password))
+  hexchat.command("nick %s" % botName)
+  return hexchat.EAT_PLUGIN
+hexchat.hook_print('Nick Clash', NickClashMsg)
+hexchat.hook_print('Nick Failed', NickClashMsg)
 
 
 # callback when anyone joins a channel bot is in 
 def ScanJoinMsg(word, word_eol, userdata):
   joinNick, joinChannel, joinHost = word
   checkForProxyMessage(joinNick, joinChannel)
-  return xchat.EAT_PLUGIN
-xchat.hook_print('Join', ScanJoinMsg)
+  return hexchat.EAT_PLUGIN
+hexchat.hook_print('Join', ScanJoinMsg)
 
 
 def selfJoinChannel(word, word_eol, userdata):
   chanProxyMessageCheck()
-  return xchat.EAT_PLUGIN
-xchat.hook_print('You Join', selfJoinChannel)
+  return hexchat.EAT_PLUGIN
+hexchat.hook_print('You Join', selfJoinChannel)
 
 
 # when someone changes nick
 def ScanNickMsg(word, word_eol, userdata):
   newName = word[1]
   nickChangeTimeout.append(newName)
-  xchat.hook_timer(10000, endNickTimeout)  # 10 second timeout
+  hexchat.hook_timer(10000, endNickTimeout)  # 10 second timeout
   
-  channel = xchat.get_info("channel")
+  channel = hexchat.get_info("channel")
   checkForProxyMessage(newName, channel)
   
-  # xchat.command("msg ns status %s" % newName)
-  return xchat.EAT_PLUGIN
-xchat.hook_print('Change Nick', ScanNickMsg)
+  # hexchat.command("msg ns status %s" % newName)
+  return hexchat.EAT_PLUGIN
+hexchat.hook_print('Change Nick', ScanNickMsg)
 
 
 def handleKickMsg(kicker, kickee, kickChan, kickMsg):
   #if bot got kicked, try to rejoin
-  if xchat.nickcmp(kickee, xchat.get_info("nick")) == 0:
-    xchat.command("join %s" % kickChan)
+  if hexchat.nickcmp(kickee, hexchat.get_info("nick")) == 0:
+    hexchat.command("join %s" % kickChan)
     message = random.choice(text.revenge) % kicker
-    xchat.command("ctcp %s action %s" % (kickChan, message))
+    hexchat.command("ctcp %s action %s" % (kickChan, message))
     
   #if chanserv did the kicking
-  elif xchat.nickcmp(kicker, "ChanServ") == 0:
-    rejoinList.append(kickee)
-    if rejoinList.count(kickee) >= 3:
-      # ban someone if chanserv has kicked them 3+ times
-      xchat.command("mode %s +b %s" % (kickChan, kickee))
+  elif hexchat.nickcmp(kicker, "ChanServ") == 0:
+      rejoinList.append(kickee)
+      if rejoinList.count(kickee) >= 3:
+        # ban someone if chanserv has kicked them 3+ times
+        hexchat.command("mode %s +b %s" % (kickChan, kickee))
 
 
 def scanKickMsg(word, word_eol, userdata):
   kicker, kickee, kickChan, kickMsg = word
   handleKickMsg(kicker, kickee, kickChan, kickMsg)
-  return xchat.EAT_PLUGIN
-xchat.hook_print("Kick", scanKickMsg)
+  return hexchat.EAT_PLUGIN
+hexchat.hook_print("Kick", scanKickMsg)
 
 
 def scanOwnKickMsg(word, word_eol, userdata):
   kickee, kickChan, kicker, kickMsg = word
   handleKickMsg(kicker, kickee, kickChan, kickMsg)
-  return xchat.EAT_PLUGIN
-xchat.hook_print("You Kicked", scanOwnKickMsg)
+  return hexchat.EAT_PLUGIN
+hexchat.hook_print("You Kicked", scanOwnKickMsg)
 
 
 
@@ -371,19 +392,21 @@ def serverConnect(word, word_eol, userdata):
     status["connectAttempt"] = 0
     db.txtTimeVote()  #putting this here for now </laziness>
     statusCheck()
-  return xchat.EAT_PLUGIN
+  return hexchat.EAT_PLUGIN
   
 #treating the MOTD as being fully connected to the server seems to work, I choose not to fight it
-xchat.hook_print("Motd", serverConnect)
-xchat.hook_print("MOTD Skipped", serverConnect)
-#xchat.hook_print("Connected", serverConnect)
+hexchat.hook_print("Motd", serverConnect)
+hexchat.hook_print("MOTD Skipped", serverConnect)
+#hexchat.hook_print("Connected", serverConnect)
 
 
 def serverConnectFail(word, word_eol, userdata):
   status["connecting"] = False
-  xchat.hook_timer(5000, delayedStatusCheck)  # 5 second delay before reconnect attempt
-  return xchat.EAT_PLUGIN
-xchat.hook_print("Connection Failed", serverConnectFail)
+  print(">>> Connection failed")
+  hexchat.hook_timer(5000, delayedStatusCheck)  # 5 second delay before reconnect attempt
+  return hexchat.EAT_PLUGIN
+hexchat.hook_print("Connection Failed", serverConnectFail)
+hexchat.hook_print("Unknown Host", serverConnectFail)
 
 
 def serverDisconnect(word, word_eol, userdata):
@@ -392,10 +415,10 @@ def serverDisconnect(word, word_eol, userdata):
     status["connecting"] = False
     status["identified"] = False 
     status["identifying"] = False
-    xchat.hook_timer(5000, delayedStatusCheck)  # 5 second delay before reconnect attempt
-  return xchat.EAT_PLUGIN
-xchat.hook_print("Ping Timeout", serverDisconnect)
-xchat.hook_print("Disconnected", serverDisconnect)
+    hexchat.hook_timer(5000, delayedStatusCheck)  # 5 second delay before reconnect attempt
+  return hexchat.EAT_PLUGIN
+hexchat.hook_print("Ping Timeout", serverDisconnect)
+hexchat.hook_print("Disconnected", serverDisconnect)
 
 
 
@@ -404,13 +427,20 @@ xchat.hook_print("Disconnected", serverDisconnect)
 # user limitations
 
 def handleAbuseDict(userdata):
+  delNicks = []
   for nick in abuseDict.keys():
     if abuseDict[nick] > 0:
       abuseDict[nick] -= 2
     else:
-      del abuseDict[nick]
-  return True
-xchat.hook_timer(20000, handleAbuseDict)  # every 20 seconds
+     delNicks.append(nick)
+  
+  for delNick in delNicks:
+    del abuseDict[delNick]
+    
+  if abuseDict == {}:
+    return False
+  else:
+    return True
 
 
 # removes the oldest name from the nick change timeout list
@@ -428,29 +458,30 @@ def delayedStatusCheck(userdata):
 
 def statusCheck():
   if not status["declareFailure"]:
-    if xchat.get_info("server") != None:
+    if hexchat.get_info("server") != None:
       status["connected"] = True
   
   
     if not status["connected"] and not status["connecting"]:
-      if status["connectAttempt"] >= 5:
+      if status["connectAttempt"] >= MAX_CONN_ATTEMPTS:
         # reset attempts, but don't try again for 10 minutes
+        print(">>> Maximum connection attempts reached (%d), will try again later" % MAX_CONN_ATTEMPTS)
         status["connectAttempt"] = 0
-        xchat.hook_timer(600000, delayedStatusCheck)
+        hexchat.hook_timer(600000, delayedStatusCheck)
       else:
-        print ">>> Attempting to connect to server"
-        xchat.command("server %s %s" % (serverName, portNum))
+        print(">>> Attempting to connect to server")
+        hexchat.command("server %s %s" % (serverName, portNum))
         status["connecting"] = True
         status["connectAttempt"] += 1
       
     elif not status["identified"] and not status["identifying"]:
-      print ">>> Attempting to identify with server"
-      xchat.command("nick %s" % botName)
+      print(">>> Attempting to identify with server")
+      hexchat.command("nick %s" % botName)
       identifyWithServer()
       status["identifying"] = True
       
     else:
-      print ">>> Attempting to join channels"
+      print(">>> Attempting to join channels")
       joinChannels()
 
 # run on start to initialize bot

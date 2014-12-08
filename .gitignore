@@ -9,3 +9,4 @@ seedLogDb.py
 bot - Copy.db
 *.db
 quoteConvert.py
+logfile.log

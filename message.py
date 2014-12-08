@@ -1,9 +1,9 @@
-import re, string, xchat
+import re, string, hexchat
 
 MAX_MESSAGE_SAVE = 5
 
 class msgObject(object):
-  # takes the string list that xchat provides
+  # takes the string list that hexchat provides
   def __init__(self):
     self.prevData = {}
     self.channel = ''
@@ -47,8 +47,8 @@ class msgObject(object):
     self.formWords = self.formStr.split(' ')
     
     # create and sanitize a list of nicks in the channel for reg exp
-    self.nicklist = [x.nick.lower() for x in xchat.get_list('users')]
-    self.nicklistUpper = [x.nick for x in xchat.get_list('users')]
+    self.nicklist = [x.nick.lower() for x in hexchat.get_list('users')]
+    self.nicklistUpper = [x.nick for x in hexchat.get_list('users')]
     self.reNicklist = '|'.join([x.replace('|','\|').replace('[','\[').replace(']','\]') for x in self.nicklist])
   
     
@@ -105,7 +105,7 @@ class msgObject(object):
     return validMessages[-number:]
     
     
-  #gets the nick of the last person to post a nick in a channel
+  #gets the nick of the last person to post a in a channel
   def getPrevNick(self, channel):
     if channel in self.prevData:
       return self.prevData[channel][0][0]

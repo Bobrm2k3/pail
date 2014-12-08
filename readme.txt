@@ -1,8 +1,8 @@
 Steps to install pail:
-  Download and install python 2.6
-  Download and install xchat 2.0+
-  Download and install pip for the python 2.6
-  Use pip to install the following libraries: requests, PyMarkovChain
+  Download and install python 3.4
+  Download and install hexchat 2.0+
+  Download and install pip for the python 3.4
+  run: pip install -r requirements.txt
   Register a nick for the bot on the IRC server you want to run it on
   Create a text file in the project directory with only the bot's IRC idenfity password in it
   Edit and run gen/gendb.py to initialize the database (at the very least, set yourself as supreme admin)
